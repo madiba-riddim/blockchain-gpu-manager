@@ -65,6 +65,9 @@ Directory Structure
     |-- (dependencies)
 
 ```
+## Demo
+This demo showcases how to interact with the deployed contract on the Sepolia testnet using the REMIX IDE. The contract is deployed from the professor’s address. A student’s address is then used to submit a GPU borrowing request. The video demonstrates that if a student attempts to approve or reject a request, the transaction fails as expected due to permission restrictions. In contrast, when the professor’s address is used to approve or reject requests, the transactions succeed and the number of pending requests decreases accordingly.
+[![Watch the demo](https://img.youtube.com/vi/c1HIq_Pg5Wc/0.jpg)](https://youtu.be/c1HIq_Pg5Wc?feature=shared)
 
 ## Security & License
 Do not commit your .env file or private keys!
