@@ -1,4 +1,4 @@
-# gpu-manager-blockchain
+# Blockchain GPU Manager
 
 A decentralized GPU resource management and approval system built on the Ethereum blockchain for laboratory environments.
 
@@ -17,11 +17,6 @@ A decentralized GPU resource management and approval system built on the Ethereu
 2. **Professors** review pending requests and approve/reject them on-chain.
 3. **All records** are stored on the Ethereum testnet (e.g., Sepolia), ensuring transparency and tamper-resistance.
 4. (Optional) **Off-chain scripts** can listen to approval/rejection events and send notifications to users.
-
-## Smart Contract
-
-- Written in Solidity, tested and deployed via [Foundry](https://book.getfoundry.sh/).
-- [See `src/gpu.sol`](src/GPUApproval.sol) for implementation details.
 
 ## Quick Start
 
