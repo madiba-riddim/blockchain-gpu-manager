@@ -1,21 +1,24 @@
 # Blockchain GPU Manager
 
-A decentralized GPU resource management and approval system built on the Ethereum blockchain for laboratory environments.
+A decentralized GPU resource management, tokenized approval, and peer-to-peer trading system built on the Ethereum blockchain for laboratory environments.
 
 ## Features
 
-- **Decentralized Approval**: Professors approve or reject GPU borrowing requests on-chain; records are immutable and transparent.
-- **User-Friendly Interface**: Students can submit GPU requests using blockchain wallets (e.g., MetaMask, Remix).
-- **Role-Based Permissions**: Only authorized professor addresses can approve/reject; all approvals are traceable.
-- **Pending Requests View**: Professors can query all pending requests for easy management.
-- **On-chain Event Logging**: All actions (apply, approve, reject) emit events for easy off-chain monitoring and notification integration.
-- **Extensible**: Easily integrable with off-chain notification systems (e.g., email, Slack, LINE) via event listeners.
+- **Tokenized GPU Access**: GPU borrowing requests require spending GPUQ tokens (ERC20). Professors distribute or sell these tokens.
+- **Deposit & Fairness**: Students pay a usage fee (by hour) plus a deposit. Professors can approve, refund, or forfeit deposits based on user behavior.
+- **Peer-to-Peer Token Marketplace**: Users can sell extra GPUQ tokens for ETH; buyers and sellers interact directly on-chain.
+- **Decentralized Approval**: All requests and actions are logged and immutable on-chain.
+- **Role-Based Permissions**: Only authorized professors can approve/reject/refund/forfeit; students manage their own requests and tokens.
+- **On-chain Event Logging**: All actions (apply, approve, reject, return, refund, forfeit, buy, sell) emit events for off-chain monitoring and notification.
+- **Extensible**: Easily integrable with notification systems or web frontends; can be deployed on public or private Ethereum chains.
 
 ## How It Works
 
-1. **Students** submit a GPU request (including details, GPU index, target machine) via the smart contract.
-2. **Professors** review pending requests and approve/reject them on-chain.
-3. **All records** are stored on the Ethereum testnet (e.g., Sepolia), ensuring transparency and tamper-resistance.
+1. **Students** obtain GPUQ tokens from the professor or buy them on-chain from others.
+2. To borrow a GPU, a student submits a request (specifying details, GPU index, machine, and hours) and pays the required fee plus a deposit (all in GPUQ tokens).
+3. **Professors** review and approve or reject requests. Upon approval, students can return GPUs after usage. The professor decides to refund or forfeit deposits based on conduct.
+4. **Marketplace**: Any user can list tokens for sale (specify quantity & price); buyers send ETH to buy directly from sellers.
+5. **All actions** are recorded on the Ethereum testnet (e.g., Sepolia), ensuring full transparency and tamper-resistance.
 
 ## Quick Start
 
@@ -24,6 +27,7 @@ A decentralized GPU resource management and approval system built on the Ethereu
 git clone https://github.com/madiba-riddim/gpu-manager-blockchain.git
 cd gpu-manager-blockchain
 ```
+
 ### 2. Build & Test
 
 ```bash
@@ -39,7 +43,8 @@ PRIVATE_KEY=your-testnet-account-private-key
 ```
 Deploy using Foundry:
 ```bash
-forge script script/Deploy.s.sol:DeployScript --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+forge script script/DeployToken.s.sol:DeployToken --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
+forge script script/DeployApproval.s.sol:DeployApproval --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast
 ```
 
 ### 4. Interact
@@ -54,13 +59,15 @@ Directory Structure
 |-- LICENSE
 |-- foundry.toml
 |-- .gitignore
-|-- src
+|-- src/
 |   |-- gpu.sol
-|-- test
+|   |-- GPUQToken.sol
+|-- test/
 |   |-- GPUApproval.t.sol
-|-- script
-|   |-- Deploy.s.sol
-|-- lib
+|-- script/
+|   |-- DeployToken.s.sol
+|   |-- DeployApproval.s.sol
+|-- lib/
     |-- (dependencies)
 
 ```
@@ -68,74 +75,34 @@ Directory Structure
 
 ### For Students
 
-- **applyGPU**
-  - `function applyGPU(string detail, uint gpuIndex, string machine) returns (uint id)`
-  - **Usage:**  
-    Students use this function to submit a GPU borrowing request.  
-    - `detail`: Reason or description for borrowing.
-    - `gpuIndex`: The specific GPU number/index to request.
-    - `machine`: The machine on which the GPU resides.
-  - **Returns:**  
-    The function returns a unique request ID for tracking the application.
+| Function                 | Signature                                                                     | Purpose                                                                |
+| ------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **applyGPU**             | `applyGPU(string detail, uint gpuIndex, string machine, uint hour) → uint id` | Submit a borrowing request  •  pays *hour × price* + *deposit*         |
+| **returnGPU**            | `returnGPU(uint id)`                                                          | After finishing, call to mark the GPU as returned                      |
+| **getRequest**           | `getRequest(uint id) view`                                                    | View full details and status of a specific request                     |
+| **getPendingRequestIds** | `getPendingRequestIds() view → uint[]`                                        | List all request IDs that are still pending                            |
+| **listForSale**          | `listForSale(uint tokenCount, uint pricePerTokenWei)`                         | Offer *tokenCount* GPUQ tokens for sale at a fixed ETH price per token |
+| **buy**                  | `buy(uint saleId) payable`                                                    | Purchase a listed sale; send the required ETH with the call            |
+| **GPUQToken (ERC-20)**   | *transfer*, *approve*, *allowance*, *balanceOf*, …                            | Standard token operations for moving or approving GPUQ                 |
 
-- **getRequest**
-  - `function getRequest(uint id) view returns (address requester, string detail, Status status, uint gpuIndex, string machine, string rejectReason)`
-  - **Usage:**  
-    Any user (including students) can query details and the current status of a specific request by its ID.
-
-- **getPendingRequestIds**
-  - `function getPendingRequestIds() view returns (uint[] ids)`
-  - **Usage:**  
-    Lists all currently pending (unapproved) request IDs. Useful for users to check their application is in the queue.
 
 ---
 
 ### For Professors
 
-- **approve**
-  - `function approve(uint id)`
-  - **Usage:**  
-    Approves a pending GPU borrowing request.  
-    - Only the professor's address can call this function.  
-    - The request status is updated to "Approved" and removed from the pending list.
-
-- **reject**
-  - `function reject(uint id, string reason)`
-  - **Usage:**  
-    Rejects a pending request, with an optional reason for rejection.  
-    - Only the professor's address can call this function.  
-    - The request status is updated to "Rejected" with the rejection reason recorded.
-
-- **getPendingRequestIds**
-  - `function getPendingRequestIds() view returns (uint[] ids)`
-  - **Usage:**  
-    Professors can use this function to get a list of all pending requests that need review.
-
-- **getRequest**
-  - `function getRequest(uint id) view returns (address requester, string detail, Status status, uint gpuIndex, string machine, string rejectReason)`
-  - **Usage:**  
-    Professors can view full details of any request before making an approval or rejection decision.
-    
-- **pendingCount**
-  - `pendingCount` (public uint)
-  - **Usage:**  
-    Returns the current number of pending (unapproved) requests in the system.
-
-- **requestCount**
-  - `requestCount` (public uint)
-  - **Usage:**  
-    Returns the total number of requests that have ever been submitted (regardless of status).
-
-- **professor**
-  - `professor` (public address)
-  - **Usage:**  
-    Returns the Ethereum address that is authorized to approve or reject requests (the current professor).
+| Function                                    | Signature                                             | Purpose                                                |
+| ------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------ |
+| **approve / reject**                        | `approve(uint id)` · `reject(uint id, string reason)` | Accept or decline a pending request                    |
+| **refundDeposit**                           | `refundDeposit(uint id)`                              | Return the student’s deposit after a proper return     |
+| **forfeitDeposit**                          | `forfeitDeposit(uint id)`                             | Confiscate the deposit if rules are violated           |
+| **getRequest / getPendingRequestIds**       | *view methods*                                        | Review any single request or the list of pending ones  |
+| **pendingCount / requestCount / professor** | public variables                                      | Inspect live contract statistics and professor address |
 
 ---
 
 **Note:**  
-- Only the professor’s address can approve or reject requests.  
-- All actions are permanently recorded on-chain for transparency and auditability.
+- Only the professor can approve, reject, refund, or forfeit deposits.
+- Every action—including token trades—is permanently and transparently recorded on-chain.
 
 ## Demo
 This demo showcases how to interact with the deployed contract on the Sepolia testnet using the REMIX IDE. The contract is deployed from the professor’s address. A student’s address is then used to submit a GPU borrowing request. The video demonstrates that if a student attempts to approve or reject a request, the transaction fails as expected due to permission restrictions. In contrast, when the professor’s address is used to approve or reject requests, the transactions succeed and the number of pending requests decreases accordingly.
