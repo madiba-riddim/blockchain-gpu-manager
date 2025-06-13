@@ -6,8 +6,10 @@ import "../src/gpu.sol";
 
 contract DeployScript is Script {
     function run() external {
+        address professor = vm.envAddress("PROFESSOR"); // 教授錢包
+        address token     = vm.envAddress("TOKEN");      // GPUQToken address
         vm.startBroadcast();
-        new GPUApproval(0x6728686aDB3356C2E10C64AD0A4e2bCCA77EdaCb);
+        new GPUApproval(professor, token);
         vm.stopBroadcast();
     }
 }
